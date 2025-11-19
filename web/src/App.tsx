@@ -1,262 +1,473 @@
-import React, { useState, useEffect } from 'react';
-import { Share2, Copy, ExternalLink, Plus, X, Edit2, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
+
+// Image assets from assets folder
+import imgInstagram from "../../assets/social apps icons/imgInstagramIcon.svg";
+import imgCopyIcon from "../../assets/icons/imgCopyIcon.svg";
+import imgOpenIcon from "../../assets/icons/imgOpenIcon.svg";
+import imgEditIcon from "../../assets/icons/imgEditIcon.svg";
+import imgTwitter from "../../assets/social apps icons/imgTwitterIcon.svg";
+import imgLinkedIn from "../../assets/social apps icons/imgLinkedInIcon.svg";
+import imgYoutube from "../../assets/social apps icons/imgYoutubeIcon.svg";
+import imgFrame from "../../assets/icons/imgAddIcon.svg";
+import imgAddLink from "../../assets/icons/imgAddIcon.svg";
+import imgCloseIcon from "../../assets/icons/imgCloseIcon.svg";
 
 interface SocialProfile {
   id: string;
   platform: string;
   username: string;
   url: string;
-  icon: string;
+  iconUrl: string;
 }
 
-const popularPlatforms = [
-  { name: 'Instagram', icon: '📷', urlPattern: 'https://instagram.com/' },
-  { name: 'Telegram', icon: '✈️', urlPattern: 'https://t.me/' },
-  { name: 'LinkedIn', icon: '💼', urlPattern: 'https://linkedin.com/in/' },
-  { name: 'Twitter/X', icon: '🐦', urlPattern: 'https://twitter.com/' },
-  { name: 'TikTok', icon: '🎵', urlPattern: 'https://tiktok.com/@' },
-  { name: 'Facebook', icon: '👤', urlPattern: 'https://facebook.com/' },
-  { name: 'GitHub', icon: '💻', urlPattern: 'https://github.com/' },
-  { name: 'Behance', icon: '🎨', urlPattern: 'https://behance.net/' },
+interface PlatformTemplate {
+  id: string;
+  label: string;
+  icon: string;
+  placeholder?: string;
+  buildUrl: (username: string) => string;
+  platformDisplay?: string;
+  isCustom?: boolean;
+}
+
+const getIconUrlForPlatform = (platform: string): string => {
+  const platformLower = platform.toLowerCase();
+  if (platformLower.includes('instagram')) return imgInstagram;
+  if (platformLower.includes('twitter') || platformLower === 'x') return imgTwitter;
+  if (platformLower.includes('linkedin')) return imgLinkedIn;
+  if (platformLower.includes('youtube')) return imgYoutube;
+  return imgInstagram; // default
+};
+
+const platformTemplates: PlatformTemplate[] = [
+  {
+    id: 'instagram',
+    label: 'instagram.com',
+    icon: imgInstagram,
+    placeholder: 'your nickname',
+    platformDisplay: 'Instagram',
+    buildUrl: (username: string) => `https://instagram.com/${username}`
+  },
+  {
+    id: 'twitter',
+    label: 'x.com',
+    icon: imgTwitter,
+    placeholder: 'your nickname',
+    platformDisplay: 'X',
+    buildUrl: (username: string) => `https://twitter.com/${username}`
+  },
+  {
+    id: 'linkedin',
+    label: 'linkedin.com',
+    icon: imgLinkedIn,
+    placeholder: 'your nickname',
+    platformDisplay: 'LinkedIn',
+    buildUrl: (username: string) => `https://linkedin.com/in/${username}`
+  },
+  {
+    id: 'youtube',
+    label: 'youtube.com',
+    icon: imgYoutube,
+    placeholder: 'your nickname',
+    platformDisplay: 'YouTube',
+    buildUrl: (username: string) => `https://youtube.com/@${username}`
+  },
+  {
+    id: 'custom',
+    label: 'custom site',
+    icon: imgAddLink,
+    placeholder: 'your nickname',
+    platformDisplay: 'Custom Site',
+    isCustom: true,
+    buildUrl: (username: string) => `https://${username}`
+  }
 ];
 
-function App() {
+const App = () => {
   const [profiles, setProfiles] = useState<SocialProfile[]>([]);
-  const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [newProfile, setNewProfile] = useState({
-    platform: '',
-    username: '',
-    url: '',
-    icon: '🔗'
-  });
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [nicknameInput, setNicknameInput] = useState('');
+  const [fullLinkInput, setFullLinkInput] = useState('');
+  const [fullLinkTouched, setFullLinkTouched] = useState(false);
 
-  // Load profiles from localStorage
+  // Load from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('socialProfiles');
+    const saved = localStorage.getItem('ushare_profiles');
     if (saved) {
-      setProfiles(JSON.parse(saved));
+      try {
+        const parsed = JSON.parse(saved);
+        // Restore icons
+        const profilesWithIcons = parsed.map((p: Omit<SocialProfile, 'iconUrl'>) => ({
+          ...p,
+          iconUrl: getIconUrlForPlatform(p.platform)
+        }));
+        setProfiles(profilesWithIcons);
+      } catch (e) {
+        console.error('Error loading profiles:', e);
+      }
     }
   }, []);
 
-  // Save profiles to localStorage
+  // Save to localStorage
   useEffect(() => {
     if (profiles.length > 0) {
-      localStorage.setItem('socialProfiles', JSON.stringify(profiles));
+      const profilesWithoutIcons = profiles.map(({ iconUrl, ...rest }) => rest);
+      localStorage.setItem('ushare_profiles', JSON.stringify(profilesWithoutIcons));
     }
   }, [profiles]);
 
-  const addProfile = () => {
-    if (!newProfile.platform || !newProfile.username) return;
+  const handleCopy = (username: string, id: string) => {
+    navigator.clipboard.writeText(username);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
-    const profile: SocialProfile = {
+  const handleOpen = (url: string) => {
+    window.open(url, '_blank');
+  };
+
+  const handleEdit = (id: string) => {
+    const profile = profiles.find(p => p.id === id);
+    if (!profile) return;
+    
+    const platform = prompt('Назва платформи:', profile.platform) || profile.platform;
+    const username = prompt('Нікнейм / Username:', profile.username) || profile.username;
+    const url = prompt('URL:', profile.url) || profile.url;
+    
+    setProfiles(profiles.map(p => 
+      p.id === id 
+        ? { ...p, platform, username, url, iconUrl: getIconUrlForPlatform(platform) }
+        : p
+    ));
+  };
+
+  const normalizeUrl = (value: string) => {
+    if (!value) return '';
+    return /^https?:\/\//i.test(value) ? value : `https://${value.replace(/^https?:\/\//i, '')}`;
+  };
+
+  const deriveUsernameFromUrl = (url: string) => {
+    try {
+      const parsed = new URL(normalizeUrl(url));
+      const path = parsed.pathname.replace(/^\/+/, '');
+      return path || parsed.hostname;
+    } catch {
+      return url;
+    }
+  };
+
+  const resetModalState = () => {
+    setSelectedTemplateId(null);
+    setNicknameInput('');
+    setFullLinkInput('');
+    setFullLinkTouched(false);
+  };
+
+  const openAddModal = () => {
+    setIsAddModalOpen(true);
+    resetModalState();
+  };
+
+  const closeAddModal = () => {
+    setIsAddModalOpen(false);
+    resetModalState();
+  };
+
+  const handleTemplateSelect = (templateId: string) => {
+    if (selectedTemplateId === templateId) {
+      setSelectedTemplateId(null);
+      setNicknameInput('');
+      setFullLinkInput('');
+      setFullLinkTouched(false);
+      return;
+    }
+    const template = platformTemplates.find((tpl) => tpl.id === templateId);
+    if (!template) return;
+
+    setSelectedTemplateId(templateId);
+    setNicknameInput('');
+    setFullLinkInput(template.isCustom ? '' : template.buildUrl(''));
+    setFullLinkTouched(false);
+  };
+
+  const handleNicknameChange = (value: string) => {
+    setNicknameInput(value);
+    const template = platformTemplates.find((tpl) => tpl.id === selectedTemplateId);
+    if (!template) return;
+    if (template.isCustom || fullLinkTouched) {
+      return;
+    }
+    const nextLink = value ? template.buildUrl(value) : '';
+    setFullLinkInput(nextLink);
+  };
+
+  const handleFullLinkChange = (value: string) => {
+    setFullLinkInput(value);
+    setFullLinkTouched(true);
+  };
+
+  const handleSubmitProfile = () => {
+    if (!selectedTemplateId) return;
+    const template = platformTemplates.find((tpl) => tpl.id === selectedTemplateId);
+    if (!template) return;
+
+    const nickname = template.isCustom ? nicknameInput.trim() : nicknameInput.trim();
+    const link = fullLinkInput.trim();
+
+    if (!template.isCustom && !nickname) return;
+    if (!link) return;
+
+    const platformName = template.isCustom
+      ? template.platformDisplay || template.label
+      : template.platformDisplay || template.label;
+
+    const normalizedLink = normalizeUrl(link);
+
+    const username = template.isCustom
+      ? deriveUsernameFromUrl(normalizedLink)
+      : nickname;
+
+    const newProfile: SocialProfile = {
       id: Date.now().toString(),
-      platform: newProfile.platform,
-      username: newProfile.username,
-      url: newProfile.url || `https://${newProfile.platform.toLowerCase()}.com/${newProfile.username}`,
-      icon: newProfile.icon
+      platform: platformName,
+      username,
+      url: normalizedLink,
+      iconUrl: template.icon || getIconUrlForPlatform(platformName)
     };
 
-    setProfiles([...profiles, profile]);
-    setNewProfile({ platform: '', username: '', url: '', icon: '🔗' });
-    setIsAdding(false);
+    setProfiles([...profiles, newProfile]);
+    closeAddModal();
   };
 
-  const deleteProfile = (id: string) => {
-    setProfiles(profiles.filter(p => p.id !== id));
-  };
+  const currentTemplate = selectedTemplateId
+    ? platformTemplates.find((tpl) => tpl.id === selectedTemplateId)
+    : null;
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    // You can add a toast notification here
-  };
+  const isSubmitDisabled =
+    !currentTemplate ||
+    !fullLinkInput.trim() ||
+    (!currentTemplate.isCustom && !nicknameInput.trim());
 
-  const selectPlatform = (platform: typeof popularPlatforms[0]) => {
-    setNewProfile({
-      ...newProfile,
-      platform: platform.name,
-      icon: platform.icon,
-      url: platform.urlPattern
-    });
-  };
+  const fullLinkPreview = fullLinkInput ? normalizeUrl(fullLinkInput.trim()) : '';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            🔗 uShare
-          </h1>
-          <p className="text-gray-600">Твій гаманець соціальних профілів</p>
-        </div>
+    <div className="bg-white content-stretch flex flex-col items-center relative size-full min-h-screen font-['Inter_Tight',sans-serif]">
+      {/* Header */}
+      <div className="bg-[#d9d9d9] box-border content-stretch flex flex-col gap-[112px] items-start p-[12px] relative shrink-0 text-black text-nowrap tracking-[-0.4512px] w-full whitespace-pre">
+        <p className="font-['Inter_Tight',sans-serif] font-bold leading-[60px] relative shrink-0 text-[36px]">
+          /
+        </p>
+        <p className="font-['Inter_Tight',sans-serif] font-medium leading-[36px] relative shrink-0 text-[32px]">
+          taras.pasternak
+        </p>
+      </div>
 
-        {/* Profiles List */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          {profiles.length === 0 ? (
-            <div className="text-center py-12">
-              <Share2 className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <p className="text-gray-500 mb-4">Ще немає профілів</p>
-              <button
-                onClick={() => setIsAdding(true)}
-                className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                <Plus className="h-5 w-5 mr-2" />
-                Додати перший профіль
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {profiles.map((profile) => (
-                <div
-                  key={profile.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-center space-x-3 flex-1">
-                    <span className="text-2xl">{profile.icon}</span>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-800">{profile.platform}</h3>
-                      <p className="text-sm text-gray-600">{profile.username}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => copyToClipboard(profile.url)}
-                      className="p-2 hover:bg-white rounded-lg transition-colors"
-                      title="Копіювати посилання"
-                    >
-                      <Copy className="h-5 w-5 text-gray-600" />
-                    </button>
-                    <button
-                      onClick={() => window.open(profile.url, '_blank')}
-                      className="p-2 hover:bg-white rounded-lg transition-colors"
-                      title="Відкрити"
-                    >
-                      <ExternalLink className="h-5 w-5 text-gray-600" />
-                    </button>
-                    <button
-                      onClick={() => deleteProfile(profile.id)}
-                      className="p-2 hover:bg-white rounded-lg transition-colors"
-                      title="Видалити"
-                    >
-                      <X className="h-5 w-5 text-red-500" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {profiles.length > 0 && !isAdding && (
-            <button
-              onClick={() => setIsAdding(true)}
-              className="mt-4 w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-indigo-400 hover:text-indigo-600 transition-colors"
+      {/* Profile List */}
+      {profiles.length > 0 && (
+        <>
+          {profiles.map((profile) => (
+            <div 
+              key={profile.id}
+              className="border-[0px_0px_1px] border-[rgba(0,0,0,0.2)] border-solid box-border content-stretch flex gap-[12px] items-center px-[12px] py-[24px] relative shrink-0 w-full"
             >
-              <Plus className="inline h-5 w-5 mr-2" />
-              Додати профіль
-            </button>
-          )}
-        </div>
-
-        {/* Add Profile Form */}
-        {isAdding && (
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Додати профіль</h2>
-            
-            {/* Popular Platforms */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Популярні платформи
-              </label>
-              <div className="grid grid-cols-4 gap-2">
-                {popularPlatforms.map((platform) => (
-                  <button
-                    key={platform.name}
-                    onClick={() => selectPlatform(platform)}
-                    className={`p-3 rounded-lg border-2 transition-all ${
-                      newProfile.platform === platform.name
-                        ? 'border-indigo-500 bg-indigo-50'
-                        : 'border-gray-200 hover:border-indigo-300'
-                    }`}
-                  >
-                    <div className="text-2xl mb-1">{platform.icon}</div>
-                    <div className="text-xs text-gray-600">{platform.name}</div>
-                  </button>
-                ))}
+              <div className="overflow-clip relative shrink-0 size-[24px] bg-transparent">
+                <img alt={profile.platform} className="block max-w-none size-full" src={profile.iconUrl} style={{ stroke: 'none' }} />
               </div>
-            </div>
-
-            {/* Platform Name */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Назва платформи
-              </label>
-              <input
-                type="text"
-                value={newProfile.platform}
-                onChange={(e) => setNewProfile({ ...newProfile, platform: e.target.value })}
-                placeholder="Instagram"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Username */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Нікнейм / Username
-              </label>
-              <input
-                type="text"
-                value={newProfile.username}
-                onChange={(e) => setNewProfile({ ...newProfile, username: e.target.value })}
-                placeholder="your.username"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* URL (optional) */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Повне посилання (опціонально)
-              </label>
-              <input
-                type="url"
-                value={newProfile.url}
-                onChange={(e) => setNewProfile({ ...newProfile, url: e.target.value })}
-                placeholder="https://instagram.com/your.username"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Buttons */}
-            <div className="flex space-x-3">
+              <p className="font-['Inter_Tight',sans-serif] font-normal leading-[40px] relative shrink-0 text-[24px] text-[rgba(0,0,0,0.2)] text-nowrap tracking-[-0.3008px] whitespace-pre">
+                /
+              </p>
+              <p className="basis-0 font-['Inter_Tight',sans-serif] font-medium grow leading-[18px] min-h-px min-w-px relative shrink-0 text-[18px] text-black tracking-[-0.3008px]">
+                {profile.username}
+              </p>
               <button
-                onClick={addProfile}
-                className="flex-1 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+                onClick={() => handleCopy(profile.username, profile.id)}
+                className={`relative shrink-0 size-[24px] hover:opacity-70 transition-opacity bg-transparent border-none p-0 m-0 ${copiedId === profile.id ? 'opacity-50' : ''}`}
+                title="Копіювати нікнейм"
+                style={{ stroke: 'none', outline: 'none', padding: 0, margin: 0 }}
               >
-                <Check className="inline h-5 w-5 mr-2" />
-                Додати
+                <img alt="Copy" className="block max-w-none size-full p-0 m-0" src={imgCopyIcon} style={{ stroke: 'none', padding: 0, margin: 0 }} />
               </button>
               <button
-                onClick={() => {
-                  setIsAdding(false);
-                  setNewProfile({ platform: '', username: '', url: '', icon: '🔗' });
-                }}
-                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                onClick={() => handleOpen(profile.url)}
+                className="relative shrink-0 size-[24px] hover:opacity-70 transition-opacity bg-transparent border-none p-0 m-0"
+                title="Відкрити профіль"
+                style={{ stroke: 'none', outline: 'none', padding: 0, margin: 0 }}
               >
-                Скасувати
+                <img alt="Open" className="block max-w-none size-full p-0 m-0" src={imgOpenIcon} style={{ stroke: 'none', padding: 0, margin: 0 }} />
+              </button>
+              <button
+                onClick={() => handleEdit(profile.id)}
+                className="relative shrink-0 size-[24px] hover:opacity-70 transition-opacity bg-transparent border-none p-0 m-0"
+                title="Редагувати"
+                style={{ stroke: 'none', outline: 'none', padding: 0, margin: 0 }}
+              >
+                <img alt="Edit" className="block max-w-none size-full p-0 m-0" src={imgEditIcon} style={{ stroke: 'none', padding: 0, margin: 0 }} />
               </button>
             </div>
+          ))}
+          <div className="basis-0 bg-white grow min-h-px min-w-px shrink-0 w-full" />
+        </>
+      )}
+
+      {/* Add Button */}
+      <div className="box-border content-stretch flex flex-col items-start p-[12px] relative shrink-0 w-full">
+        <button 
+          onClick={openAddModal}
+          className="bg-[#d9d9d9] box-border content-stretch flex gap-[10px] h-[48px] items-center justify-center p-[10px] relative shrink-0 w-full hover:opacity-90 transition-opacity"
+        >
+          <div className="relative shrink-0 size-[24px] bg-transparent">
+            <img alt="Add" className="block max-w-none size-full" src={imgFrame} style={{ stroke: 'none' }} />
           </div>
-        )}
+          <p className="font-['Inter_Tight',sans-serif] font-medium leading-[18px] relative shrink-0 text-[18px] text-black text-nowrap tracking-[-0.3008px] whitespace-pre">
+            Додати профіль
+          </p>
+        </button>
+      </div>
 
-        {/* Footer */}
-        <div className="text-center mt-8 text-sm text-gray-600">
-          <p>Зроблено з ❤️ в Україні 🇺🇦</p>
+      {/* Add Profile Bottom Sheet */}
+      <div
+        className={`fixed inset-0 z-40 transition-opacity duration-200 ease-out ${
+          isAddModalOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        style={{
+          opacity: isAddModalOpen ? 1 : 0,
+          pointerEvents: isAddModalOpen ? 'auto' : 'none',
+        }}
+        aria-hidden={!isAddModalOpen}
+      >
+        <div
+          className="absolute inset-0 bg-[rgba(0,0,0,0.5)]"
+          onClick={closeAddModal}
+        />
+        <div
+          className={`absolute bottom-0 left-1/2 flex w-full max-w-[480px] -translate-x-1/2 transform-gpu px-[12px] pb-[12px] transition-transform duration-300 ease-out ${
+            isAddModalOpen ? 'translate-y-0' : 'translate-y-full'
+          }`}
+          style={{
+            transform: `translate(-50%, ${isAddModalOpen ? '0%' : '100%'})`,
+          }}
+        >
+          <div className="basis-0 bg-white content-stretch flex grow flex-col min-h-[520px] overflow-hidden rounded-t-[12px] shadow-[0_-12px_32px_rgba(0,0,0,0.15)]">
+            <div className="mt-[12px] flex justify-center">
+              <span className="h-[4px] w-[36px] rounded-full bg-[#d9d9d9]" aria-hidden />
+            </div>
+            <div className="box-border content-stretch flex items-center justify-center px-[12px] py-[24px]">
+              <p className="font-['Inter_Tight',sans-serif] font-bold uppercase tracking-[2px] text-[16px] leading-[24px] text-[#434343] text-center">
+                Додати профіль
+              </p>
+            </div>
+            <div className="flex flex-col divide-y divide-[#e5e5e5] border-t border-b border-[#e5e5e5]">
+              {platformTemplates.map((template) => {
+                const isSelected = selectedTemplateId === template.id;
+                return (
+                  <div key={template.id} className="flex flex-col">
+                    <button
+                      type="button"
+                      onClick={() => handleTemplateSelect(template.id)}
+                      className={`box-border flex items-center gap-[12px] px-[12px] py-[20px] text-left transition-colors ${
+                        isSelected ? 'bg-[#f5f5f5]' : 'bg-white hover:bg-[#f8f8f8]'
+                      }`}
+                    >
+                      <div className="overflow-clip relative shrink-0 size-[24px]">
+                        <img
+                          alt={template.platformDisplay || template.label}
+                          className="block max-w-none size-full"
+                          src={template.icon}
+                        />
+                      </div>
+                      <p className="font-['Inter_Tight',sans-serif] font-medium text-[18px] leading-[24px] text-black">
+                        {template.label}
+                      </p>
+                      {!template.isCustom && (
+                        <>
+                          <p className="font-['Inter_Tight',sans-serif] font-medium text-[18px] leading-[24px] text-[#cccccc]">
+                            /
+                          </p>
+                          <p className="basis-0 font-['Inter_Tight',sans-serif] font-medium grow text-[18px] leading-[24px] text-[#cccccc]">
+                            {template.placeholder || 'username'}
+                          </p>
+                        </>
+                      )}
+                      <div className="relative shrink-0 size-[24px]">
+                        <img
+                          alt={isSelected ? 'Minus' : 'Add'}
+                          className={`block max-w-none size-full transition-transform ${
+                            isSelected ? 'rotate-45' : ''
+                          }`}
+                          src={imgFrame}
+                        />
+                      </div>
+                    </button>
+                    {isSelected && (
+                      <div className="flex flex-col gap-[16px] px-[12px] pb-[20px] pt-[8px] bg-[#fafafa]">
+                        {!template.isCustom && (
+                          <label className="flex flex-col gap-[8px] text-[14px] uppercase tracking-[1px] text-[#434343]">
+                            <span>Нікнейм</span>
+                            <input
+                              value={nicknameInput}
+                              onChange={(e) => handleNicknameChange(e.target.value)}
+                              placeholder="your nickname"
+                              className="border border-[#dcdcdc] rounded-[4px] px-[12px] py-[10px] text-[16px] text-black focus:border-black outline-none transition-colors"
+                            />
+                          </label>
+                        )}
+                        <label className="flex flex-col gap-[8px] text-[14px] uppercase tracking-[1px] text-[#434343]">
+                          <span>Full link</span>
+                          <div className="flex items-center gap-[8px]">
+                            <input
+                              value={fullLinkInput}
+                              onChange={(e) => handleFullLinkChange(e.target.value)}
+                              placeholder={
+                                template.isCustom ? 'https://your-site.com/username' : template.buildUrl('username')
+                              }
+                              className="border border-[#dcdcdc] rounded-[4px] px-[12px] py-[10px] text-[16px] text-black focus:border-black outline-none transition-colors flex-1"
+                            />
+                            {fullLinkPreview && (
+                              <a
+                                href={fullLinkPreview}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[14px] text-[#1a73e8] underline-offset-2 hover:underline"
+                              >
+                                Відкрити
+                              </a>
+                            )}
+                          </div>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={handleSubmitProfile}
+                          disabled={isSubmitDisabled}
+                          className={`h-[48px] rounded-[6px] text-[16px] font-medium uppercase tracking-[2px] ${
+                            isSubmitDisabled
+                              ? 'bg-[#e0e0e0] text-[#9e9e9e] cursor-not-allowed'
+                              : 'bg-black text-white hover:opacity-90'
+                          }`}
+                        >
+                          Додати
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <button
+              onClick={closeAddModal}
+              className="bg-[#cccccc] mt-auto flex items-center justify-center gap-[12px] h-[48px] w-full text-black font-['Inter_Tight',sans-serif] text-[18px] leading-[24px]"
+            >
+              <div className="relative shrink-0 size-[24px]">
+                <img alt="Close" className="block max-w-none size-full" src={imgCloseIcon} />
+              </div>
+              Скасувати
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
-}
+};
 
 export default App;
