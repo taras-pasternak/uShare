@@ -1,3 +1,30 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Inter Tight', sans-serif;
+  }
+  
+  /* Remove stroke and background from SVG icons */
+  img[src*=".svg"],
+  svg {
+    stroke: none !important;
+    background: none !important;
+    background-color: transparent !important;
+  }
+  
+  img[src*=".svg"] svg,
+  svg * {
+    stroke: none !important;
+    background: none !important;
+    background-color: transparent !important;
+  }
+  
+  button img[src*=".svg"] {
+    stroke: none !important;
+    background: none !important;
+    background-color: transparent !important;
+  }
+}
