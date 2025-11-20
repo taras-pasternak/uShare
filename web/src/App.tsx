@@ -326,9 +326,9 @@ const App = () => {
         </button>
       </div>
 
-      {/* Add Profile Bottom Sheet */}
+      {/* Add Profile Modal */}
       <div
-        className={`fixed inset-0 z-40 transition-opacity duration-200 ease-out ${
+        className={`fixed inset-0 z-50 flex justify-end transition-opacity duration-200 ease-out ${
           isAddModalOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
         style={{
@@ -338,27 +338,23 @@ const App = () => {
         aria-hidden={!isAddModalOpen}
       >
         <div
-          className="absolute inset-0 bg-[rgba(0,0,0,0.5)]"
+          className="absolute inset-0 z-0 bg-[rgba(0,0,0,0.5)] pointer-events-auto"
           onClick={closeAddModal}
+          aria-hidden="true"
         />
         <div
-          className={`absolute bottom-0 left-1/2 flex w-full max-w-[480px] -translate-x-1/2 transform-gpu px-[12px] pb-[12px] transition-transform duration-300 ease-out ${
-            isAddModalOpen ? 'translate-y-0' : 'translate-y-full'
+          className={`relative z-10 ml-auto h-screen w-full max-w-[400px] shadow-[-12px_0_32px_rgba(0,0,0,0.25)] transition-transform duration-300 ease-out ${
+            isAddModalOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
-          style={{
-            transform: `translate(-50%, ${isAddModalOpen ? '0%' : '100%'})`,
-          }}
+          onClick={(e) => e.stopPropagation()}
         >
-          <div className="basis-0 bg-white content-stretch flex grow flex-col min-h-[520px] overflow-hidden rounded-t-[12px] shadow-[0_-12px_32px_rgba(0,0,0,0.15)]">
-            <div className="mt-[12px] flex justify-center">
-              <span className="h-[4px] w-[36px] rounded-full bg-[#d9d9d9]" aria-hidden />
-            </div>
-            <div className="box-border content-stretch flex items-center justify-center px-[12px] py-[24px]">
+          <div className="bg-white content-stretch flex h-full flex-col overflow-hidden">
+            <div className="box-border content-stretch flex items-center justify-center px-[12px] py-[24px] border-b border-[#f0f0f0]">
               <p className="font-['Inter_Tight',sans-serif] font-bold uppercase tracking-[2px] text-[16px] leading-[24px] text-[#434343] text-center">
-                Додати профіль
+                ADD PROFILE
               </p>
             </div>
-            <div className="flex flex-col divide-y divide-[#e5e5e5] border-t border-b border-[#e5e5e5]">
+            <div className="flex flex-col border-b border-[#cccccc]">
               {platformTemplates.map((template) => {
                 const isSelected = selectedTemplateId === template.id;
                 return (
@@ -366,8 +362,8 @@ const App = () => {
                     <button
                       type="button"
                       onClick={() => handleTemplateSelect(template.id)}
-                      className={`box-border flex items-center gap-[12px] px-[12px] py-[20px] text-left transition-colors ${
-                        isSelected ? 'bg-[#f5f5f5]' : 'bg-white hover:bg-[#f8f8f8]'
+                      className={`box-border flex items-center gap-[12px] px-[16px] py-[24px] text-left border-b border-[#cccccc] last:border-b-0 ${
+                        isSelected ? 'bg-[#f7f7f7]' : 'bg-white'
                       }`}
                     >
                       <div className="overflow-clip relative shrink-0 size-[24px]">
@@ -377,31 +373,27 @@ const App = () => {
                           src={template.icon}
                         />
                       </div>
-                      <p className="font-['Inter_Tight',sans-serif] font-medium text-[18px] leading-[24px] text-black">
+                      <p className="font-['Inter_Tight',sans-serif] font-medium text-[18px] leading-[24px] text-black text-nowrap">
                         {template.label}
                       </p>
-                      {!template.isCustom && (
-                        <>
-                          <p className="font-['Inter_Tight',sans-serif] font-medium text-[18px] leading-[24px] text-[#cccccc]">
-                            /
-                          </p>
-                          <p className="basis-0 font-['Inter_Tight',sans-serif] font-medium grow text-[18px] leading-[24px] text-[#cccccc]">
-                            {template.placeholder || 'username'}
-                          </p>
-                        </>
-                      )}
+                      <p className="font-['Inter_Tight',sans-serif] font-medium text-[18px] leading-[24px] text-[#cccccc]">
+                        /
+                      </p>
+                      <p className="basis-0 font-['Inter_Tight',sans-serif] font-medium grow text-[18px] leading-[24px] text-[#cccccc] text-right">
+                        {template.placeholder || 'username'}
+                      </p>
                       <div className="relative shrink-0 size-[24px]">
                         <img
                           alt={isSelected ? 'Minus' : 'Add'}
                           className={`block max-w-none size-full transition-transform ${
-                            isSelected ? 'rotate-45' : ''
+                            isSelected ? 'rotate-45 scale-90' : ''
                           }`}
                           src={imgFrame}
                         />
                       </div>
                     </button>
                     {isSelected && (
-                      <div className="flex flex-col gap-[16px] px-[12px] pb-[20px] pt-[8px] bg-[#fafafa]">
+                      <div className="flex flex-col gap-[16px] px-[16px] pb-[24px] pt-[12px] bg-[#fafafa] border-b border-[#cccccc]">
                         {!template.isCustom && (
                           <label className="flex flex-col gap-[8px] text-[14px] uppercase tracking-[1px] text-[#434343]">
                             <span>Нікнейм</span>
@@ -456,12 +448,12 @@ const App = () => {
             </div>
             <button
               onClick={closeAddModal}
-              className="bg-[#cccccc] mt-auto flex items-center justify-center gap-[12px] h-[48px] w-full text-black font-['Inter_Tight',sans-serif] text-[18px] leading-[24px]"
+              className="bg-[#cccccc] flex items-center justify-center gap-[12px] h-[56px] w-full text-black font-['Inter_Tight',sans-serif] text-[18px] leading-[24px]"
             >
               <div className="relative shrink-0 size-[24px]">
                 <img alt="Close" className="block max-w-none size-full" src={imgCloseIcon} />
               </div>
-              Скасувати
+              Cancel
             </button>
           </div>
         </div>
