@@ -10,12 +10,17 @@ import type { SocialProfile } from './types';
 import { getIconUrlForPlatform } from './config';
 import { AddProfileModal } from './components/AddProfileModal';
 import { EditProfileModal } from './components/EditProfileModal';
+import { Toast } from './components/Toast';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthScreen } from './components/AuthScreen';
 
-const App = () => {
+const AppContent = () => {
+  const { currentUser, signOut } = useAuth();
   const [profiles, setProfiles] = useState<SocialProfile[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState<SocialProfile | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Load from localStorage
   useEffect(() => {
@@ -44,6 +49,7 @@ const App = () => {
   const handleCopy = (username: string, id: string) => {
     navigator.clipboard.writeText(username);
     setCopiedId(id);
+    setToastMessage('Username copied!');
     setTimeout(() => setCopiedId(null), 2000);
   };
 
@@ -86,16 +92,27 @@ const App = () => {
     setProfiles([...profiles, newProfile]);
   };
 
+  if (!currentUser) {
+    return <AuthScreen />;
+  }
+
   return (
     <div className="bg-white content-stretch flex flex-col items-center relative size-full min-h-screen font-['Inter_Tight',sans-serif]">
       {/* Header */}
       <div className="bg-[#d9d9d9] box-border content-stretch flex flex-col gap-[112px] items-start p-[12px] relative shrink-0 text-black text-nowrap tracking-[-0.4512px] w-full whitespace-pre">
-        <p className="font-['Inter_Tight',sans-serif] font-bold leading-[60px] relative shrink-0 text-[36px]">
-          /
-        </p>
-        <p className="font-['Inter_Tight',sans-serif] font-medium leading-[36px] relative shrink-0 text-[32px]">
-          taras.pasternak
-        </p>
+        <div className="w-full flex justify-between items-start">
+          <div>
+            <p className="font-['Inter_Tight',sans-serif] font-bold leading-[60px] relative shrink-0 text-[36px]">
+              /
+            </p>
+            <p className="font-['Inter_Tight',sans-serif] font-medium leading-[36px] relative shrink-0 text-[32px]">
+              {currentUser.username}
+            </p>
+          </div>
+          <button onClick={signOut} className="text-sm underline opacity-50 hover:opacity-100">
+            Sign Out
+          </button>
+        </div>
       </div>
 
       {/* Profile List */}
@@ -173,7 +190,21 @@ const App = () => {
         onUpdate={handleUpdateProfile}
         onDelete={handleDeleteProfile}
       />
+
+      <Toast
+        message={toastMessage || ''}
+        isVisible={!!toastMessage}
+        onClose={() => setToastMessage(null)}
+      />
     </div>
+  );
+};
+
+const App = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 };
 
