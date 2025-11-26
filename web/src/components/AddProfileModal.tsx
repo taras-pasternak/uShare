@@ -71,7 +71,17 @@ export const AddProfileModal: React.FC<AddProfileModalProps> = ({ isOpen, onClos
                         <input
                             type="url"
                             value={url}
-                            onChange={(e) => setUrl(e.target.value)}
+                            onChange={(e) => {
+                                const newUrl = e.target.value;
+                                setUrl(newUrl);
+                                const template = platformTemplates.find(t => t.id === platform);
+                                if (template?.extractUsername) {
+                                    const extracted = template.extractUsername(newUrl);
+                                    if (extracted) {
+                                        setUsername(extracted);
+                                    }
+                                }
+                            }}
                             className="w-full border p-2 rounded"
                             required
                         />

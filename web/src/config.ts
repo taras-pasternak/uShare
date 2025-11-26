@@ -21,7 +21,11 @@ export const platformTemplates: PlatformTemplate[] = [
         icon: imgInstagram,
         placeholder: 'your nickname',
         platformDisplay: 'Instagram',
-        buildUrl: (username: string) => `https://www.instagram.com/${username}`
+        buildUrl: (username: string) => `https://www.instagram.com/${username}`,
+        extractUsername: (url: string) => {
+            const match = url.match(/(?:instagram\.com\/)([^/?#]+)/);
+            return match ? match[1] : null;
+        }
     },
     {
         id: 'twitter',
@@ -29,7 +33,11 @@ export const platformTemplates: PlatformTemplate[] = [
         icon: imgTwitter,
         placeholder: 'your nickname',
         platformDisplay: 'X',
-        buildUrl: (username: string) => `https://x.com/${username.replace(/^@/, '')}`
+        buildUrl: (username: string) => `https://x.com/${username.replace(/^@/, '')}`,
+        extractUsername: (url: string) => {
+            const match = url.match(/(?:x\.com\/|twitter\.com\/)([^/?#]+)/);
+            return match ? match[1] : null;
+        }
     },
     {
         id: 'linkedin',
@@ -37,7 +45,11 @@ export const platformTemplates: PlatformTemplate[] = [
         icon: imgLinkedIn,
         placeholder: 'your nickname',
         platformDisplay: 'LinkedIn',
-        buildUrl: (username: string) => `https://www.linkedin.com/in/${username}`
+        buildUrl: (username: string) => `https://www.linkedin.com/in/${username}`,
+        extractUsername: (url: string) => {
+            const match = url.match(/(?:linkedin\.com\/in\/)([^/?#]+)/);
+            return match ? match[1] : null;
+        }
     },
     {
         id: 'youtube',
@@ -45,7 +57,11 @@ export const platformTemplates: PlatformTemplate[] = [
         icon: imgYoutube,
         placeholder: 'your nickname',
         platformDisplay: 'YouTube',
-        buildUrl: (username: string) => `https://www.youtube.com/${username.startsWith('@') ? username : '@' + username}`
+        buildUrl: (username: string) => `https://www.youtube.com/${username.startsWith('@') ? username : '@' + username}`,
+        extractUsername: (url: string) => {
+            const match = url.match(/(?:youtube\.com\/)(@?[^/?#]+)/);
+            return match ? match[1] : null;
+        }
     },
     {
         id: 'custom',

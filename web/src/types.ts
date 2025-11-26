@@ -12,6 +12,13 @@ export interface PlatformTemplate {
     icon: string;
     placeholder?: string;
     buildUrl: (username: string) => string;
+    extractUsername?: (url: string) => string | null;
     platformDisplay?: string;
     isCustom?: boolean;
+}
+
+export interface User {
+    username: string;
+    email: string;
+    password?: string;
 }
