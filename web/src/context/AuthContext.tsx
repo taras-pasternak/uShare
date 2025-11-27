@@ -1,60 +1,96 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import type { User } from '../types';
+
+interface AuthResponse {
+    success: boolean;
+    error?: string;
+}
 
 interface AuthContextType {
     currentUser: User | null;
-    signUp: (user: User) => boolean;
-    signIn: (email: string, password: string) => boolean;
-    signOut: () => void;
+    signUp: (user: User) => Promise<AuthResponse>;
+    signIn: (email: string, password: string) => Promise<AuthResponse>;
+    signOut: () => Promise<void>;
+    loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const storedUser = localStorage.getItem('ushare_current_user');
-        if (storedUser) {
-            setCurrentUser(JSON.parse(storedUser));
-        }
+        // Check active session
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user) {
+                setCurrentUser({
+                    username: session.user.user_metadata.username || session.user.email?.split('@')[0] || 'User',
+                    email: session.user.email || '',
+                });
+            }
+            setLoading(false);
+        });
+
+        // Listen for changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (session?.user) {
+                setCurrentUser({
+                    username: session.user.user_metadata.username || session.user.email?.split('@')[0] || 'User',
+                    email: session.user.email || '',
+                });
+            } else {
+                setCurrentUser(null);
+            }
+            setLoading(false);
+        });
+
+        return () => subscription.unsubscribe();
     }, []);
 
-    const signUp = (user: User) => {
-        const users: User[] = JSON.parse(localStorage.getItem('ushare_users') || '[]');
+    const signUp = async (user: User): Promise<AuthResponse> => {
+        try {
+            const { error } = await supabase.auth.signUp({
+                email: user.email,
+                password: user.password || '',
+                options: {
+                    data: {
+                        username: user.username,
+                    },
+                },
+            });
 
-        if (users.some(u => u.email === user.email)) {
-            return false; // User already exists
+            if (error) throw error;
+
+            return { success: true };
+        } catch (error: any) {
+            return { success: false, error: error.message };
         }
-
-        users.push(user);
-        localStorage.setItem('ushare_users', JSON.stringify(users));
-
-        setCurrentUser(user);
-        localStorage.setItem('ushare_current_user', JSON.stringify(user));
-        return true;
     };
 
-    const signIn = (email: string, password: string) => {
-        const users: User[] = JSON.parse(localStorage.getItem('ushare_users') || '[]');
-        const user = users.find(u => u.email === email && u.password === password);
+    const signIn = async (email: string, password: string): Promise<AuthResponse> => {
+        try {
+            const { error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
 
-        if (user) {
-            setCurrentUser(user);
-            localStorage.setItem('ushare_current_user', JSON.stringify(user));
-            return true;
+            if (error) throw error;
+
+            return { success: true };
+        } catch (error: any) {
+            return { success: false, error: error.message };
         }
-        return false;
     };
 
-    const signOut = () => {
-        setCurrentUser(null);
-        localStorage.removeItem('ushare_current_user');
+    const signOut = async () => {
+        await supabase.auth.signOut();
     };
 
     return (
-        <AuthContext.Provider value={{ currentUser, signUp, signIn, signOut }}>
-            {children}
+        <AuthContext.Provider value={{ currentUser, signUp, signIn, signOut, loading }}>
+            {!loading && children}
         </AuthContext.Provider>
     );
 };

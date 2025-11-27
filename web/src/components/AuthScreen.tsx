@@ -7,26 +7,40 @@ export const AuthScreen: React.FC = () => {
     const [password, setPassword] = useState('');
     const [username, setUsername] = useState('');
     const [error, setError] = useState('');
+    const [message, setMessage] = useState('');
+    const [loading, setLoading] = useState(false);
     const { signIn, signUp } = useAuth();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setMessage('');
+        setLoading(true);
 
-        if (isSignUp) {
-            if (!username) {
-                setError('Username is required');
-                return;
+        try {
+            if (isSignUp) {
+                if (!username) {
+                    setError('Username is required');
+                    setLoading(false);
+                    return;
+                }
+                const { success, error } = await signUp({ email, password, username });
+                if (success) {
+                    setMessage('Account created! Please check your email to confirm your account.');
+                    setIsSignUp(false); // Switch to sign in view or keep on message
+                } else {
+                    setError(error || 'Failed to create account');
+                }
+            } else {
+                const { success, error } = await signIn(email, password);
+                if (!success) {
+                    setError(error || 'Invalid email or password');
+                }
             }
-            const success = signUp({ email, password, username });
-            if (!success) {
-                setError('User already exists');
-            }
-        } else {
-            const success = signIn(email, password);
-            if (!success) {
-                setError('Invalid email or password');
-            }
+        } catch (err) {
+            setError('An unexpected error occurred');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -40,6 +54,12 @@ export const AuthScreen: React.FC = () => {
                 {error && (
                     <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
                         {error}
+                    </div>
+                )}
+
+                {message && (
+                    <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+                        {message}
                     </div>
                 )}
 
@@ -84,9 +104,10 @@ export const AuthScreen: React.FC = () => {
 
                     <button
                         type="submit"
-                        className="w-full bg-black text-white py-2 rounded hover:opacity-90 transition-opacity mt-2"
+                        disabled={loading}
+                        className="w-full bg-black text-white py-2 rounded hover:opacity-90 transition-opacity mt-2 disabled:opacity-50"
                     >
-                        {isSignUp ? 'Sign Up' : 'Sign In'}
+                        {loading ? 'Processing...' : (isSignUp ? 'Sign Up' : 'Sign In')}
                     </button>
                 </form>
 
@@ -96,6 +117,7 @@ export const AuthScreen: React.FC = () => {
                         onClick={() => {
                             setIsSignUp(!isSignUp);
                             setError('');
+                            setMessage('');
                         }}
                         className="text-blue-600 hover:underline font-medium"
                     >

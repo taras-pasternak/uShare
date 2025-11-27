@@ -2,6 +2,7 @@ import imgInstagram from "../assets/social apps icons/imgInstagramIcon.svg";
 import imgTwitter from "../assets/social apps icons/imgTwitterIcon.svg";
 import imgLinkedIn from "../assets/social apps icons/imgLinkedInIcon.svg";
 import imgYoutube from "../assets/social apps icons/imgYoutubeIcon.svg";
+import imgBehance from "../assets/social apps icons/imgBehanceIcon.svg";
 import imgAddLink from "../assets/icons/imgAddIcon.svg";
 import type { PlatformTemplate } from "./types";
 
@@ -11,6 +12,7 @@ export const getIconUrlForPlatform = (platform: string): string => {
     if (platformLower.includes('twitter') || platformLower === 'x') return imgTwitter;
     if (platformLower.includes('linkedin')) return imgLinkedIn;
     if (platformLower.includes('youtube')) return imgYoutube;
+    if (platformLower.includes('behance')) return imgBehance;
     return imgInstagram; // default
 };
 
@@ -60,6 +62,18 @@ export const platformTemplates: PlatformTemplate[] = [
         buildUrl: (username: string) => `https://www.youtube.com/${username.startsWith('@') ? username : '@' + username}`,
         extractUsername: (url: string) => {
             const match = url.match(/(?:youtube\.com\/)(@?[^/?#]+)/);
+            return match ? match[1] : null;
+        }
+    },
+    {
+        id: 'behance',
+        label: 'behance.net',
+        icon: imgBehance,
+        placeholder: 'your nickname',
+        platformDisplay: 'Behance',
+        buildUrl: (username: string) => `https://www.behance.net/${username}`,
+        extractUsername: (url: string) => {
+            const match = url.match(/(?:behance\.net\/)([^/?#]+)/);
             return match ? match[1] : null;
         }
     },
