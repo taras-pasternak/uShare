@@ -28,6 +28,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setCurrentUser({
                     username: session.user.user_metadata.username || session.user.email?.split('@')[0] || 'User',
                     email: session.user.email || '',
+                    id: session.user.id,
                 });
             }
             setLoading(false);
@@ -39,6 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setCurrentUser({
                     username: session.user.user_metadata.username || session.user.email?.split('@')[0] || 'User',
                     email: session.user.email || '',
+                    id: session.user.id,
                 });
             } else {
                 setCurrentUser(null);
