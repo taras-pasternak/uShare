@@ -65,3 +65,29 @@ $$ language plpgsql security definer;
 create or replace trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- Create a table for friends
+create table public.friends (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users on delete cascade not null,
+  friend_id uuid references auth.users on delete cascade not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  
+  constraint friends_user_id_friend_id_key unique (user_id, friend_id),
+  constraint friends_not_self check (user_id <> friend_id)
+);
+
+-- Set up RLS for friends
+alter table public.friends enable row level security;
+
+create policy "Friends are viewable by everyone."
+  on friends for select
+  using ( true );
+
+create policy "Users can add friends."
+  on friends for insert
+  with check ( auth.uid() = user_id );
+
+create policy "Users can remove friends."
+  on friends for delete
+  using ( auth.uid() = user_id );
