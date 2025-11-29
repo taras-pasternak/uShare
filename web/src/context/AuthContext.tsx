@@ -60,6 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     data: {
                         username: user.username,
                     },
+                    emailRedirectTo: window.location.origin,
                 },
             });
 
