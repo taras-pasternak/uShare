@@ -71,3 +71,7 @@ export default defineConfig([
   },
 ])
 ```
+
+## Deployment Log
+- Triggered redeploy for environment variable update.
+
