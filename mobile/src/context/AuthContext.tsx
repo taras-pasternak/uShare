@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { getPasswordResetRedirectUrl } from '../lib/authRedirect';
 import { supabase } from '../lib/supabase';
 import type { User } from '../types';
@@ -27,7 +27,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         let mounted = true;
 
-        // Safety timeout to prevent infinite loading
         const timeoutId = setTimeout(() => {
             if (mounted && loading) {
                 console.warn('Auth check timed out, forcing application load');
@@ -35,35 +34,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         }, 3000);
 
-        // Check active session
-        supabase.auth.getSession().then(({ data: { session }, error }) => {
-            if (!mounted) return;
+        supabase.auth
+            .getSession()
+            .then(({ data: { session }, error }) => {
+                if (!mounted) return;
 
-            if (error) {
-                console.error('Error checking session:', error);
-            }
+                if (error) {
+                    console.error('Error checking session:', error);
+                }
+
+                if (session?.user) {
+                    setCurrentUser({
+                        username:
+                            session.user.user_metadata.username ||
+                            session.user.email?.split('@')[0] ||
+                            'User',
+                        email: session.user.email || '',
+                        id: session.user.id,
+                    });
+                }
+                setLoading(false);
+                clearTimeout(timeoutId);
+            })
+            .catch((err) => {
+                console.error('Unexpected error during auth check:', err);
+                if (mounted) setLoading(false);
+            });
+
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (!mounted) return;
 
             if (session?.user) {
                 setCurrentUser({
-                    username: session.user.user_metadata.username || session.user.email?.split('@')[0] || 'User',
-                    email: session.user.email || '',
-                    id: session.user.id,
-                });
-            }
-            setLoading(false);
-            clearTimeout(timeoutId);
-        }).catch(err => {
-            console.error('Unexpected error during auth check:', err);
-            if (mounted) setLoading(false);
-        });
-
-        // Listen for changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            if (!mounted) return;
-
-            if (session?.user) {
-                setCurrentUser({
-                    username: session.user.user_metadata.username || session.user.email?.split('@')[0] || 'User',
+                    username:
+                        session.user.user_metadata.username ||
+                        session.user.email?.split('@')[0] ||
+                        'User',
                     email: session.user.email || '',
                     id: session.user.id,
                 });
@@ -89,15 +97,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     data: {
                         username: user.username,
                     },
-                    emailRedirectTo: window.location.origin,
                 },
             });
 
             if (error) throw error;
 
             return { success: true };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Sign up failed';
+            return { success: false, error: message };
         }
     };
 
@@ -111,8 +119,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (error) throw error;
 
             return { success: true };
-        } catch (error: any) {
-            return { success: false, error: error.message };
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Sign in failed';
+            return { success: false, error: message };
         }
     };
 
@@ -160,7 +169,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 loading,
             }}
         >
-            {!loading && children}
+            {children}
         </AuthContext.Provider>
     );
 };

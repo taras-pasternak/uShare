@@ -129,7 +129,7 @@ export const PublicProfile = () => {
     const handleCopy = (text: string, id: string) => {
         navigator.clipboard.writeText(text);
         setCopiedId(id);
-        setToastMessage('Copied!');
+        setToastMessage('Link copied!');
         setTimeout(() => setCopiedId(null), 2000);
     };
 
@@ -206,9 +206,9 @@ export const PublicProfile = () => {
                                     {profile.username}
                                 </p>
                                 <button
-                                    onClick={() => handleCopy(profile.username, profile.id)}
+                                    onClick={() => handleCopy(profile.url, profile.id)}
                                     className={`relative shrink-0 size-[24px] hover:opacity-70 transition-opacity bg-transparent border-none p-0 m-0 ${copiedId === profile.id ? 'opacity-50' : ''}`}
-                                    title="Copy"
+                                    title="Copy Link"
                                     style={{ stroke: 'none', outline: 'none', padding: 0, margin: 0 }}
                                 >
                                     <img alt="Copy" className="block max-w-none size-full p-0 m-0" src={imgCopyIcon} style={{ stroke: 'none', padding: 0, margin: 0 }} />

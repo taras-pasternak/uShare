@@ -22,6 +22,34 @@ create policy "Users can update own profile."
   on profiles for update
   using ( auth.uid() = id );
 
+-- Create a table for folders
+create table public.folders (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users on delete cascade not null,
+  name text not null,
+  color text default 'blue',
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Set up RLS for folders
+alter table public.folders enable row level security;
+
+create policy "Folders are viewable by everyone."
+  on folders for select
+  using ( true );
+
+create policy "Users can insert their own folders."
+  on folders for insert
+  with check ( auth.uid() = user_id );
+
+create policy "Users can update their own folders."
+  on folders for update
+  using ( auth.uid() = user_id );
+
+create policy "Users can delete their own folders."
+  on folders for delete
+  using ( auth.uid() = user_id );
+
 -- Create a table for social links
 create table public.social_links (
   id uuid default gen_random_uuid() primary key,
@@ -29,6 +57,7 @@ create table public.social_links (
   platform text not null,
   username text not null,
   url text not null,
+  folder_id uuid references public.folders(id) on delete set null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

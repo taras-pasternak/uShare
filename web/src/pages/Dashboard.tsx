@@ -23,30 +23,64 @@ import { SearchBox } from '../components/SearchBox';
 export const Dashboard = () => {
     const { currentUser, signOut } = useAuth();
     const [profiles, setProfiles] = useState<SocialProfile[]>([]);
+    const [folders, setFolders] = useState<{ id: string; name: string }[]>([]);
+    const [activeFolderId, setActiveFolderId] = useState<string>('personal');
     const [friends, setFriends] = useState<any[]>([]);
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingProfile, setEditingProfile] = useState<SocialProfile | null>(null);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'profile' | 'friends'>('profile');
-
-
+    const [isAddingFolder, setIsAddingFolder] = useState(false);
+    const [newFolderName, setNewFolderName] = useState('');
 
     // Load from Supabase
     useEffect(() => {
         if (!currentUser?.id) return;
 
-        const fetchProfiles = async () => {
+        const fetchData = async () => {
+            // Fetch Folders
+            const { data: folderData, error: folderError } = await supabase
+                .from('folders')
+                .select('*')
+                .eq('user_id', currentUser.id)
+                .order('created_at', { ascending: true });
+
+            let currentFolders = [];
+            if (folderData && folderData.length > 0) {
+                currentFolders = folderData;
+            } else {
+                // If no folders, create default "Personal" folder in DB if needed, 
+                // but for now we'll handle it visually or create it if the user wants. 
+                // Alternatively, we can just treat criteria "no folder_id" as "Personal".
+                // But request says "Personal" folder by default.
+                // Let's assume we fetch real folders. If empty, we can show a virtual "Personal" tab
+                // that maps to null folder_id or we can create one.
+                // For simplicity/robustness, let's auto-create "Personal" if 0 folders exist.
+
+                if (!folderError && (!folderData || folderData.length === 0)) {
+                    const { data: newFolder, error: createError } = await supabase
+                        .from('folders')
+                        .insert({ user_id: currentUser.id, name: 'Personal', color: 'red' })
+                        .select()
+                        .single();
+
+                    if (newFolder) {
+                        currentFolders = [newFolder];
+                    }
+                }
+            }
+            setFolders(currentFolders);
+            if (currentFolders.length > 0 && activeFolderId === 'personal') {
+                setActiveFolderId(currentFolders[0].id);
+            }
+
+            // Fetch Profiles
             const { data, error } = await supabase
                 .from('social_links')
                 .select('*')
                 .eq('user_id', currentUser.id)
                 .order('created_at', { ascending: true });
-
-            if (error) {
-                console.error('Error fetching profiles:', error);
-                return;
-            }
 
             if (data) {
                 const profilesWithIcons = data.map((p: any) => ({
@@ -57,7 +91,7 @@ export const Dashboard = () => {
             }
         };
 
-        fetchProfiles();
+        fetchData();
     }, [currentUser]);
 
     useEffect(() => {
@@ -88,11 +122,6 @@ export const Dashboard = () => {
                 .select('id, username')
                 .in('id', friendIds);
 
-            if (profilesError) {
-                console.error('Error fetching friend profiles:', profilesError);
-                return;
-            }
-
             if (profilesData) {
                 // Combine the data
                 const friendsList = friendData.map(f => {
@@ -110,12 +139,10 @@ export const Dashboard = () => {
         fetchFriends();
     }, [currentUser, activeTab]);
 
-
-
-    const handleCopy = (username: string, id: string) => {
-        navigator.clipboard.writeText(username);
+    const handleCopy = (text: string, id: string) => {
+        navigator.clipboard.writeText(text);
         setCopiedId(id);
-        setToastMessage('Username copied!');
+        setToastMessage('Link copied!');
         setTimeout(() => setCopiedId(null), 2000);
     };
 
@@ -145,7 +172,6 @@ export const Dashboard = () => {
             .eq('id', updatedProfile.id);
 
         if (error) {
-            console.error('Error updating profile:', error);
             setToastMessage('Error updating profile');
             return;
         }
@@ -160,7 +186,6 @@ export const Dashboard = () => {
             .eq('id', id);
 
         if (error) {
-            console.error('Error deleting profile:', error);
             setToastMessage('Error deleting profile');
             return;
         }
@@ -189,13 +214,13 @@ export const Dashboard = () => {
                 user_id: currentUser.id,
                 platform: newProfile.platform,
                 username: newProfile.username,
-                url: newProfile.url
+                url: newProfile.url,
+                folder_id: activeFolderId !== 'personal' ? activeFolderId : (folders.length > 0 ? folders[0].id : null)
             }])
             .select()
             .single();
 
         if (error) {
-            console.error('Error adding profile:', error);
             setToastMessage('Error adding profile');
             return;
         }
@@ -217,7 +242,36 @@ export const Dashboard = () => {
         }
     };
 
+    const handleAddFolder = async () => {
+        if (!newFolderName.trim() || !currentUser?.id) return;
 
+        const { data, error } = await supabase
+            .from('folders')
+            .insert({
+                user_id: currentUser.id,
+                name: newFolderName.trim()
+            })
+            .select()
+            .single();
+
+        if (error) {
+            setToastMessage('Error creating folder');
+            console.error(error);
+            return;
+        }
+
+        if (data) {
+            setFolders([...folders, data]);
+            setNewFolderName('');
+            setIsAddingFolder(false);
+            setActiveFolderId(data.id);
+        }
+    };
+
+    const filteredProfiles = profiles.filter(p => {
+        if (folders.length === 0) return true; // Show all if no folders (legacy/loading)
+        return p.folderId === activeFolderId || (!p.folderId && activeFolderId === folders[0]?.id);
+    });
 
     if (!currentUser) {
         return <AuthScreen />;
@@ -284,9 +338,48 @@ export const Dashboard = () => {
             {/* Profile List */}
             {activeTab === 'profile' && (
                 <>
-                    {profiles.length > 0 && (
+                    {/* Folder Tabs */}
+                    <div className="w-full px-[12px] mt-4 flex items-center gap-4 overflow-x-auto">
+                        {folders.map(folder => (
+                            <button
+                                key={folder.id}
+                                onClick={() => setActiveFolderId(folder.id)}
+                                className={`px-4 py-2 rounded-full font-['Inter_Tight',sans-serif] text-[16px] transition-colors border ${activeFolderId === folder.id
+                                        ? 'bg-black text-white border-black'
+                                        : 'bg-white text-black border-gray-200 hover:border-black'
+                                    }`}
+                            >
+                                {folder.name}
+                            </button>
+                        ))}
+
+                        {isAddingFolder ? (
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="text"
+                                    value={newFolderName}
+                                    onChange={(e) => setNewFolderName(e.target.value)}
+                                    placeholder="Name"
+                                    className="border rounded px-2 py-1 text-sm outline-none focus:border-black"
+                                    autoFocus
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAddFolder()}
+                                />
+                                <button onClick={handleAddFolder} className="text-sm font-medium hover:underline">Add</button>
+                                <button onClick={() => setIsAddingFolder(false)} className="text-sm text-gray-400 hover:text-black">✕</button>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => setIsAddingFolder(true)}
+                                className="text-[16px] text-gray-500 hover:text-black font-medium px-4 py-2"
+                            >
+                                + add new
+                            </button>
+                        )}
+                    </div>
+
+                    {filteredProfiles.length > 0 && (
                         <>
-                            {profiles.map((profile) => (
+                            {filteredProfiles.map((profile) => (
                                 <div
                                     key={profile.id}
                                     className="border-[0px_0px_1px] border-[rgba(0,0,0,0.2)] border-solid box-border content-stretch flex gap-[12px] items-center px-[12px] py-[24px] relative shrink-0 w-full"
@@ -301,9 +394,9 @@ export const Dashboard = () => {
                                         {profile.username}
                                     </p>
                                     <button
-                                        onClick={() => handleCopy(profile.username, profile.id)}
+                                        onClick={() => handleCopy(profile.url, profile.id)}
                                         className={`relative shrink-0 size-[24px] hover:opacity-70 transition-opacity bg-transparent border-none p-0 m-0 ${copiedId === profile.id ? 'opacity-50' : ''}`}
-                                        title="Копіювати нікнейм"
+                                        title="Копіювати посилання"
                                         style={{ stroke: 'none', outline: 'none', padding: 0, margin: 0 }}
                                     >
                                         <img alt="Copy" className="block max-w-none size-full p-0 m-0" src={imgCopyIcon} style={{ stroke: 'none', padding: 0, margin: 0 }} />
@@ -366,9 +459,9 @@ export const Dashboard = () => {
                                         {friend.username}
                                     </p>
                                     <button
-                                        onClick={() => handleCopy(friend.username, friend.id)}
+                                        onClick={() => handleCopy(`${window.location.origin}/u/${friend.username}`, friend.id)}
                                         className={`relative shrink-0 size-[24px] hover:opacity-70 transition-opacity bg-transparent border-none p-0 m-0 ${copiedId === friend.id ? 'opacity-50' : ''}`}
-                                        title="Copy Username"
+                                        title="Copy Link"
                                         style={{ stroke: 'none', outline: 'none', padding: 0, margin: 0 }}
                                     >
                                         <img alt="Copy" className="block max-w-none size-full p-0 m-0" src={imgCopyIcon} style={{ stroke: 'none', padding: 0, margin: 0 }} />
