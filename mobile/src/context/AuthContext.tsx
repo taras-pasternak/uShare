@@ -27,6 +27,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         let mounted = true;
 
+        const ensureProfileExists = async (userId: string, username: string) => {
+            try {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('id', userId)
+                    .single();
+
+                if (error || !data) {
+                    await supabase
+                        .from('profiles')
+                        .insert({ id: userId, username });
+                }
+            } catch (err) {
+                console.error('Error ensuring profile exists:', err);
+            }
+        };
+
         const timeoutId = setTimeout(() => {
             if (mounted && loading) {
                 console.warn('Auth check timed out, forcing application load');
@@ -44,14 +62,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }
 
                 if (session?.user) {
+                    const username =
+                        session.user.user_metadata.username ||
+                        session.user.email?.split('@')[0] ||
+                        'User';
                     setCurrentUser({
-                        username:
-                            session.user.user_metadata.username ||
-                            session.user.email?.split('@')[0] ||
-                            'User',
+                        username,
                         email: session.user.email || '',
                         id: session.user.id,
                     });
+                    ensureProfileExists(session.user.id, username);
                 }
                 setLoading(false);
                 clearTimeout(timeoutId);
@@ -67,14 +87,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (!mounted) return;
 
             if (session?.user) {
+                const username =
+                    session.user.user_metadata.username ||
+                    session.user.email?.split('@')[0] ||
+                    'User';
                 setCurrentUser({
-                    username:
-                        session.user.user_metadata.username ||
-                        session.user.email?.split('@')[0] ||
-                        'User',
+                    username,
                     email: session.user.email || '',
                     id: session.user.id,
                 });
+                ensureProfileExists(session.user.id, username);
             } else {
                 setCurrentUser(null);
             }
