@@ -10,11 +10,17 @@ interface ProfileCardProps {
 }
 
 export const ProfileCard = ({ item, onCopy, onOpen, onEditPress }: ProfileCardProps) => {
+    const isCustom = item.platform === 'custom';
+    const title = isCustom ? item.username : getPlatformDisplayName(item.platform);
+    const subtitle = isCustom
+        ? item.url.replace(/^(https?:\/\/)?(www\.)?/i, '')
+        : `@${item.username}`;
+
     return (
         <View style={styles.profileCard}>
             <Pressable style={styles.profileInfo} onPress={() => onEditPress(item)}>
-                <Text style={styles.platformName}>{getPlatformDisplayName(item.platform)}</Text>
-                <Text style={styles.username}>@{item.username}</Text>
+                <Text style={styles.platformName}>{title}</Text>
+                <Text style={styles.username}>{subtitle}</Text>
             </Pressable>
             <View style={styles.profileActions}>
                 <Pressable style={styles.actionButton} onPress={() => onCopy(item.url)}>
