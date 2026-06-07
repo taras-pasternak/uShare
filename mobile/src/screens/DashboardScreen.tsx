@@ -20,6 +20,7 @@ import { getPublicProfileUrl, platformTemplates } from '../config';
 import { ProfileCard } from '../components/ProfileCard';
 import { AddProfileModal } from '../components/AddProfileModal';
 import { EditProfileModal } from '../components/EditProfileModal';
+import { theme } from '../theme';
 
 const mapRowToProfile = (row: Record<string, unknown>): SocialProfile => ({
     id: String(row.id),
@@ -523,7 +524,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
     },
     header: {
-        backgroundColor: '#d9d9d9',
+        backgroundColor: theme.colors.primary,
         paddingHorizontal: 20,
         paddingTop: 60,
         paddingBottom: 12,
@@ -647,7 +648,7 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
     addProfileButton: {
-        backgroundColor: '#d9d9d9',
+        backgroundColor: theme.colors.primary,
         height: 48,
         marginHorizontal: 16,
         marginTop: 20,

@@ -152,7 +152,7 @@ export const PublicProfile = () => {
     return (
         <div className="bg-white content-stretch flex flex-col items-center relative size-full min-h-screen font-['Inter_Tight',sans-serif]">
             {/* Header */}
-            <div className="bg-[#d9d9d9] box-border content-stretch flex flex-col gap-[112px] items-start p-[12px] relative shrink-0 text-black text-nowrap tracking-[-0.4512px] w-full whitespace-pre">
+            <div className="bg-primary box-border content-stretch flex flex-col gap-[112px] items-start p-[12px] relative shrink-0 text-black text-nowrap tracking-[-0.4512px] w-full whitespace-pre">
                 <div className="w-full flex justify-between items-start">
                     <div>
                         <Link to="/" className="font-['Inter_Tight',sans-serif] font-bold leading-[60px] relative shrink-0 text-[36px] hover:opacity-70 transition-opacity text-black no-underline">
