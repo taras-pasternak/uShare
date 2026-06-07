@@ -81,6 +81,11 @@ export const DashboardScreen = () => {
         showToast('Public link copied!');
     };
 
+    const handleOpenPublicProfile = () => {
+        if (!currentUser?.username) return;
+        Linking.openURL(getPublicProfileUrl(currentUser.username));
+    };
+
     const handleAddProfile = async (platform: string, username: string, url: string): Promise<boolean> => {
         if (!currentUser?.id || !username.trim()) return false;
 
@@ -187,7 +192,10 @@ export const DashboardScreen = () => {
 
             <View style={styles.toolbar}>
                 <Pressable style={styles.shareButton} onPress={handleShareCopy}>
-                    <Text style={styles.shareButtonText}>Copy public link</Text>
+                    <Text style={styles.shareButtonText}>Copy link</Text>
+                </Pressable>
+                <Pressable style={styles.shareButton} onPress={handleOpenPublicProfile}>
+                    <Text style={styles.shareButtonText}>Open profile</Text>
                 </Pressable>
                 <Pressable style={styles.addButton} onPress={() => setIsAddModalOpen(true)}>
                     <Text style={styles.addButtonText}>+ Add</Text>
