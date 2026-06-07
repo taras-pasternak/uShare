@@ -11,14 +11,14 @@
 
   /* Remove stroke and background from SVG icons */
   img[src*=".svg"],
-  svg {
+  svg:not(.lucide) {
     stroke: none !important;
     background: none !important;
     background-color: transparent !important;
   }
 
   img[src*=".svg"] svg,
-  svg * {
+  svg:not(.lucide) * {
     stroke: none !important;
     background: none !important;
     background-color: transparent !important;

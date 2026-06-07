@@ -68,6 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         'User';
                     setCurrentUser({
                         username,
+                        name: session.user.user_metadata.name || '',
                         email: session.user.email || '',
                         id: session.user.id,
                     });
@@ -93,6 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     'User';
                 setCurrentUser({
                     username,
+                    name: session.user.user_metadata.name || '',
                     email: session.user.email || '',
                     id: session.user.id,
                 });

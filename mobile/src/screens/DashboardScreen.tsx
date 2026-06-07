@@ -20,6 +20,7 @@ import { getPublicProfileUrl, platformTemplates } from '../config';
 import { ProfileCard } from '../components/ProfileCard';
 import { AddProfileModal } from '../components/AddProfileModal';
 import { EditProfileModal } from '../components/EditProfileModal';
+import { SettingsModal } from '../components/SettingsModal';
 import { theme } from '../theme';
 
 const mapRowToProfile = (row: Record<string, unknown>): SocialProfile => ({
@@ -37,6 +38,7 @@ export const DashboardScreen = () => {
     const [toast, setToast] = useState<string | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingProfile, setEditingProfile] = useState<SocialProfile | null>(null);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     // Web-alignment states
     const [activeTab, setActiveTab] = useState<'profile' | 'friends'>('profile');
@@ -417,8 +419,8 @@ export const DashboardScreen = () => {
                             </Pressable>
                         </View>
                     </View>
-                    <Pressable onPress={signOut}>
-                        <Text style={styles.signOut}>Sign out</Text>
+                    <Pressable onPress={() => setIsSettingsOpen(true)} style={styles.settingsHeaderBtn}>
+                        <Feather name="settings" size={24} color="#000" />
                     </Pressable>
                 </View>
                 <View style={styles.headerTabs}>
@@ -630,6 +632,11 @@ export const DashboardScreen = () => {
                 onSave={handleUpdateProfile}
                 onDelete={handleDeleteProfile}
             />
+
+            <SettingsModal
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+            />
         </View>
     );
 };
@@ -677,12 +684,11 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         backgroundColor: 'rgba(0,0,0,0.05)',
     },
-    signOut: {
-        fontSize: 14,
-        color: '#000',
-        textDecorationLine: 'underline',
-        opacity: 0.6,
-        marginTop: 10,
+    settingsHeaderBtn: {
+        padding: 6,
+        borderRadius: 20,
+        backgroundColor: 'rgba(0,0,0,0.05)',
+        marginTop: 6,
     },
     headerTabs: {
         flexDirection: 'row',

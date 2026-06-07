@@ -19,9 +19,11 @@ import { Toast } from '../components/Toast';
 import { useAuth } from '../context/AuthContext';
 import { AuthScreen } from '../components/AuthScreen';
 import { SearchBox } from '../components/SearchBox';
+import { SettingsModal } from '../components/SettingsModal';
+import { Settings } from 'lucide-react';
 
 export const Dashboard = () => {
-    const { currentUser, signOut } = useAuth();
+    const { currentUser } = useAuth();
     const [profiles, setProfiles] = useState<SocialProfile[]>([]);
     const [folders, setFolders] = useState<{ id: string; name: string }[]>([]);
     const [activeFolderId, setActiveFolderId] = useState<string>('personal');
@@ -34,6 +36,7 @@ export const Dashboard = () => {
     const [isAddingFolder, setIsAddingFolder] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
     const [isEditingFolders, setIsEditingFolders] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     // Load from Supabase
     useEffect(() => {
@@ -60,7 +63,7 @@ export const Dashboard = () => {
                 // For simplicity/robustness, let's auto-create "Personal" if 0 folders exist.
 
                 if (!folderError && (!folderData || folderData.length === 0)) {
-                    const { data: newFolder, error: createError } = await supabase
+                    const { data: newFolder } = await supabase
                         .from('folders')
                         .insert({ user_id: currentUser.id, name: 'Personal', color: 'red' })
                         .select()
@@ -77,7 +80,7 @@ export const Dashboard = () => {
             }
 
             // Fetch Profiles
-            const { data, error } = await supabase
+            const { data } = await supabase
                 .from('social_links')
                 .select('*')
                 .eq('user_id', currentUser.id)
@@ -118,7 +121,7 @@ export const Dashboard = () => {
 
             // Then, get the profile data for each friend
             const friendIds = friendData.map(f => f.friend_id);
-            const { data: profilesData, error: profilesError } = await supabase
+            const { data: profilesData } = await supabase
                 .from('profiles')
                 .select('id, username')
                 .in('id', friendIds);
@@ -335,9 +338,13 @@ export const Dashboard = () => {
                         <SearchBox />
                     </div>
 
-                    <div className="flex flex-col items-end justify-between">
-                        <button onClick={signOut} className="text-sm underline opacity-50 hover:opacity-100">
-                            Sign Out
+                    <div className="flex flex-col items-end justify-between gap-2">
+                        <button
+                            onClick={() => setIsSettingsOpen(true)}
+                            className="p-1.5 rounded-full hover:bg-black/5 transition-all text-black/60 hover:text-black cursor-pointer"
+                            title="Налаштування"
+                        >
+                            <Settings className="size-5" />
                         </button>
                         <div className="flex items-center gap-6">
                             <button
@@ -558,6 +565,11 @@ export const Dashboard = () => {
                 message={toastMessage || ''}
                 isVisible={!!toastMessage}
                 onClose={() => setToastMessage(null)}
+            />
+
+            <SettingsModal
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
             />
         </div>
     );
