@@ -47,6 +47,11 @@ export const DashboardScreen = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<{ id: string; username: string }[]>([]);
 
+    // Folder editing states
+    const [isAddingFolder, setIsAddingFolder] = useState(false);
+    const [newFolderName, setNewFolderName] = useState('');
+    const [isEditingFolders, setIsEditingFolders] = useState(false);
+
     // Fetch Folders and Profiles
     useEffect(() => {
         if (!currentUser?.id) return;
@@ -206,6 +211,72 @@ export const DashboardScreen = () => {
             console.error('Failed to open public profile URL:', error);
             Alert.alert('Error', 'Failed to open profile in browser');
         }
+    };
+
+    const handleAddFolder = async () => {
+        if (!newFolderName.trim() || !currentUser?.id) return;
+
+        const { data, error } = await supabase
+            .from('folders')
+            .insert({
+                user_id: currentUser.id,
+                name: newFolderName.trim(),
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error adding folder:', error);
+            showToast('Error adding tab');
+            return;
+        }
+
+        if (data) {
+            const newTab = { id: String(data.id), name: String(data.name) };
+            setFolders([...folders, newTab]);
+            setNewFolderName('');
+            setIsAddingFolder(false);
+            setActiveFolderId(newTab.id);
+            showToast('Tab created!');
+        }
+    };
+
+    const handleDeleteFolder = async (folderId: string) => {
+        Alert.alert(
+            'Delete Tab',
+            'Are you sure you want to delete this tab? This will not delete the social links inside it.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        const { error } = await supabase
+                            .from('folders')
+                            .delete()
+                            .eq('id', folderId);
+
+                        if (error) {
+                            console.error('Error deleting folder:', error);
+                            showToast('Error deleting tab');
+                            return;
+                        }
+
+                        // Remove from state
+                        const remainingFolders = folders.filter((f) => f.id !== folderId);
+                        setFolders(remainingFolders);
+
+                        // Switch active folder
+                        if (activeFolderId === folderId && remainingFolders.length > 0) {
+                            setActiveFolderId(remainingFolders[0].id);
+                        } else if (remainingFolders.length === 0) {
+                            setActiveFolderId('personal');
+                        }
+                        showToast('Tab deleted');
+                    },
+                },
+            ]
+        );
     };
 
     const handleAddProfile = async (platform: string, username: string, url: string): Promise<boolean> => {
@@ -383,7 +454,11 @@ export const DashboardScreen = () => {
                                 keyExtractor={(item) => item.id}
                                 renderItem={({ item }) => (
                                     <Pressable
-                                        onPress={() => setActiveFolderId(item.id)}
+                                        onPress={() => {
+                                            if (!isEditingFolders) {
+                                                setActiveFolderId(item.id);
+                                            }
+                                        }}
                                         style={[
                                             styles.folderChip,
                                             activeFolderId === item.id && styles.folderChipActive,
@@ -397,9 +472,50 @@ export const DashboardScreen = () => {
                                         >
                                             {item.name}
                                         </Text>
+                                        {isEditingFolders && (
+                                            <Pressable
+                                                onPress={() => handleDeleteFolder(item.id)}
+                                                style={styles.deleteFolderBtn}
+                                            >
+                                                <Feather name="x-circle" size={14} color={activeFolderId === item.id ? '#fff' : '#b91c1c'} />
+                                            </Pressable>
+                                        )}
                                     </Pressable>
                                 )}
                                 contentContainerStyle={styles.foldersListContent}
+                                ListFooterComponent={
+                                    <View style={styles.folderActionsRow}>
+                                        {isAddingFolder ? (
+                                            <View style={styles.inlineAddFolder}>
+                                                <TextInput
+                                                    style={styles.inlineFolderInput}
+                                                    placeholder="New tab..."
+                                                    value={newFolderName}
+                                                    onChangeText={setNewFolderName}
+                                                    autoFocus
+                                                    onSubmitEditing={handleAddFolder}
+                                                />
+                                                <Pressable onPress={handleAddFolder} style={styles.inlineAddBtn}>
+                                                    <Feather name="check" size={16} color="green" />
+                                                </Pressable>
+                                                <Pressable onPress={() => setIsAddingFolder(false)} style={styles.inlineAddBtn}>
+                                                    <Feather name="x" size={16} color="red" />
+                                                </Pressable>
+                                            </View>
+                                        ) : (
+                                            <Pressable style={styles.addFolderChip} onPress={() => setIsAddingFolder(true)}>
+                                                <Feather name="plus" size={16} color="#000" />
+                                            </Pressable>
+                                        )}
+                                        
+                                        <Pressable 
+                                            style={[styles.addFolderChip, isEditingFolders && styles.editFolderChipActive]} 
+                                            onPress={() => setIsEditingFolders(!isEditingFolders)}
+                                        >
+                                            <Feather name="edit-2" size={14} color={isEditingFolders ? '#fff' : '#000'} />
+                                        </Pressable>
+                                    </View>
+                                }
                             />
                         </View>
                     )}
@@ -600,6 +716,8 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     folderChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 20,
@@ -619,6 +737,50 @@ const styles = StyleSheet.create({
     folderChipTextActive: {
         color: '#fff',
         fontWeight: '600',
+    },
+    folderActionsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginLeft: 8,
+    },
+    addFolderChip: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#f3f4f6',
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    editFolderChipActive: {
+        backgroundColor: '#000',
+        borderColor: '#000',
+    },
+    inlineAddFolder: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        borderRadius: 20,
+        paddingLeft: 12,
+        paddingRight: 4,
+        height: 36,
+    },
+    inlineFolderInput: {
+        width: 80,
+        fontSize: 13,
+        color: '#000',
+        paddingVertical: 0,
+    },
+    inlineAddBtn: {
+        padding: 6,
+    },
+    deleteFolderBtn: {
+        marginLeft: 6,
+        padding: 2,
     },
     listContent: {
         flexGrow: 1,

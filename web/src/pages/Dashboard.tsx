@@ -33,6 +33,7 @@ export const Dashboard = () => {
     const [activeTab, setActiveTab] = useState<'profile' | 'friends'>('profile');
     const [isAddingFolder, setIsAddingFolder] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
+    const [isEditingFolders, setIsEditingFolders] = useState(false);
 
     // Load from Supabase
     useEffect(() => {
@@ -268,6 +269,33 @@ export const Dashboard = () => {
         }
     };
 
+    const handleDeleteFolder = async (folderId: string) => {
+        if (!window.confirm('Are you sure you want to delete this tab? This will not delete the social links inside it.')) {
+            return;
+        }
+
+        const { error } = await supabase
+            .from('folders')
+            .delete()
+            .eq('id', folderId);
+
+        if (error) {
+            console.error('Error deleting folder:', error);
+            setToastMessage('Error deleting tab');
+            return;
+        }
+
+        const remainingFolders = folders.filter(f => f.id !== folderId);
+        setFolders(remainingFolders);
+
+        if (activeFolderId === folderId && remainingFolders.length > 0) {
+            setActiveFolderId(remainingFolders[0].id);
+        } else if (remainingFolders.length === 0) {
+            setActiveFolderId('personal');
+        }
+        setToastMessage('Tab deleted');
+    };
+
     const filteredProfiles = profiles.filter(p => {
         if (folders.length === 0) return true; // Show all if no folders (legacy/loading)
         return p.folderId === activeFolderId || (!p.folderId && activeFolderId === folders[0]?.id);
@@ -341,20 +369,33 @@ export const Dashboard = () => {
                     {/* Folder Tabs */}
                     <div className="w-full px-[12px] mt-4 flex items-center gap-4 overflow-x-auto">
                         {folders.map(folder => (
-                            <button
-                                key={folder.id}
-                                onClick={() => setActiveFolderId(folder.id)}
-                                className={`px-4 py-2 rounded-full font-['Inter_Tight',sans-serif] text-[16px] transition-colors border ${activeFolderId === folder.id
-                                        ? 'bg-black text-white border-black'
-                                        : 'bg-white text-black border-gray-200 hover:border-black'
-                                    }`}
-                            >
-                                {folder.name}
-                            </button>
+                            <div key={folder.id} className="relative flex items-center shrink-0">
+                                <button
+                                    onClick={() => !isEditingFolders && setActiveFolderId(folder.id)}
+                                    className={`px-4 py-2 rounded-full font-['Inter_Tight',sans-serif] text-[16px] transition-colors border flex items-center gap-2 ${activeFolderId === folder.id
+                                            ? 'bg-black text-white border-black'
+                                            : 'bg-white text-black border-gray-200 hover:border-black'
+                                        }`}
+                                >
+                                    <span>{folder.name}</span>
+                                    {isEditingFolders && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteFolder(folder.id);
+                                            }}
+                                            className="text-red-500 hover:text-red-700 font-bold ml-1 cursor-pointer focus:outline-none bg-transparent border-none p-0"
+                                            title="Delete Tab"
+                                        >
+                                            ✕
+                                        </button>
+                                    )}
+                                </button>
+                            </div>
                         ))}
 
                         {isAddingFolder ? (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 shrink-0">
                                 <input
                                     type="text"
                                     value={newFolderName}
@@ -364,16 +405,29 @@ export const Dashboard = () => {
                                     autoFocus
                                     onKeyDown={(e) => e.key === 'Enter' && handleAddFolder()}
                                 />
-                                <button onClick={handleAddFolder} className="text-sm font-medium hover:underline">Add</button>
-                                <button onClick={() => setIsAddingFolder(false)} className="text-sm text-gray-400 hover:text-black">✕</button>
+                                <button onClick={handleAddFolder} className="text-sm font-medium hover:underline cursor-pointer">Add</button>
+                                <button onClick={() => setIsAddingFolder(false)} className="text-sm text-gray-400 hover:text-black cursor-pointer">✕</button>
                             </div>
                         ) : (
-                            <button
-                                onClick={() => setIsAddingFolder(true)}
-                                className="text-[16px] text-gray-500 hover:text-black font-medium px-4 py-2"
-                            >
-                                + add new
-                            </button>
+                            <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                    onClick={() => setIsAddingFolder(true)}
+                                    className="text-[16px] text-gray-500 hover:text-black font-medium px-4 py-2 cursor-pointer"
+                                >
+                                    + add new
+                                </button>
+                                <button
+                                    onClick={() => setIsEditingFolders(!isEditingFolders)}
+                                    className={`text-[16px] font-medium px-4 py-2 rounded-full border transition-colors cursor-pointer ${
+                                        isEditingFolders 
+                                            ? 'bg-black text-white border-black' 
+                                            : 'text-gray-500 hover:text-black border-transparent hover:border-gray-200'
+                                    }`}
+                                    title="Edit Tabs"
+                                >
+                                    Edit tabs
+                                </button>
+                            </div>
                         )}
                     </div>
 
