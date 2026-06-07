@@ -81,9 +81,21 @@ export const DashboardScreen = () => {
         showToast('Public link copied!');
     };
 
-    const handleOpenPublicProfile = () => {
+    const handleOpenPublicProfile = async () => {
         if (!currentUser?.username) return;
-        Linking.openURL(getPublicProfileUrl(currentUser.username));
+        const url = getPublicProfileUrl(currentUser.username);
+        console.log('Attempting to open public profile URL:', url);
+        try {
+            const supported = await Linking.canOpenURL(url);
+            if (supported) {
+                await Linking.openURL(url);
+            } else {
+                Alert.alert('Error', `Cannot open URL: ${url}`);
+            }
+        } catch (error) {
+            console.error('Failed to open public profile URL:', error);
+            Alert.alert('Error', `Failed to open profile in browser: ${error instanceof Error ? error.message : String(error)}`);
+        }
     };
 
     const handleAddProfile = async (platform: string, username: string, url: string): Promise<boolean> => {
