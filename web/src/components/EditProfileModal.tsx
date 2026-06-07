@@ -70,17 +70,22 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onCl
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">Username</label>
+                        <label className="block text-sm font-medium mb-1">
+                            {platform === 'custom' ? 'Link name' : 'Username'}
+                        </label>
                         <input
                             type="text"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
+                            placeholder={platformTemplates.find(t => t.id === platform)?.placeholder}
                             className="w-full border p-2 rounded"
                             required
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">URL</label>
+                        <label className="block text-sm font-medium mb-1">
+                            {platform === 'custom' ? 'URL link' : 'URL'}
+                        </label>
                         <input
                             type="url"
                             value={url}

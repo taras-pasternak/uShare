@@ -95,7 +95,7 @@ export const platformTemplates: PlatformTemplate[] = [
         id: 'custom',
         label: 'custom site',
         icon: imgAddLink,
-        placeholder: 'your nickname',
+        placeholder: 'My Website',
         platformDisplay: 'Custom Site',
         isCustom: true,
         buildUrl: (username: string) => `https://${username}`

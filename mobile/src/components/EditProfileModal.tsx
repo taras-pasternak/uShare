@@ -77,7 +77,9 @@ export const EditProfileModal = ({ profile, onClose, onSave, onDelete }: EditPro
                         ))}
                     </View>
 
-                    <Text style={styles.label}>Username</Text>
+                    <Text style={styles.label}>
+                        {platform === 'custom' ? 'Link name' : 'Username'}
+                    </Text>
                     <TextInput
                         value={username}
                         onChangeText={setUsername}
@@ -89,7 +91,9 @@ export const EditProfileModal = ({ profile, onClose, onSave, onDelete }: EditPro
                         autoCorrect={false}
                     />
 
-                    <Text style={styles.label}>URL</Text>
+                    <Text style={styles.label}>
+                        {platform === 'custom' ? 'URL link' : 'URL'}
+                    </Text>
                     <TextInput
                         value={url}
                         onChangeText={(newUrl) => {

@@ -66,7 +66,9 @@ export const AddProfileModal = ({ isOpen, onClose, onSave }: AddProfileModalProp
                         ))}
                     </View>
 
-                    <Text style={styles.label}>Username</Text>
+                    <Text style={styles.label}>
+                        {platform === 'custom' ? 'Link name' : 'Username'}
+                    </Text>
                     <TextInput
                         value={username}
                         onChangeText={setUsername}
@@ -78,7 +80,9 @@ export const AddProfileModal = ({ isOpen, onClose, onSave }: AddProfileModalProp
                         autoCorrect={false}
                     />
 
-                    <Text style={styles.label}>URL</Text>
+                    <Text style={styles.label}>
+                        {platform === 'custom' ? 'URL link' : 'URL'}
+                    </Text>
                     <TextInput
                         value={url}
                         onChangeText={(newUrl) => {
