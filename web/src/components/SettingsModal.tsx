@@ -41,9 +41,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             return;
         }
 
-        const usernameRegex = /^[a-zA-Z0-9_]+$/;
+        const usernameRegex = /^[a-zA-Z0-9_-]+$/;
         if (!usernameRegex.test(cleanUsername)) {
-            setError('Нікнейм може містити лише латинські літери, цифри та символ підкреслення');
+            setError('Нікнейм може містити лише латинські літери, цифри, дефіс та символ підкреслення');
             return;
         }
 

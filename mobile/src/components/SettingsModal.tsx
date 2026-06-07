@@ -47,12 +47,12 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
             return;
         }
 
-        // Validate username format (only alphanumeric and underscores, e.g. web-compatible)
-        const usernameRegex = /^[a-zA-Z0-9_]+$/;
+        // Validate username format (only alphanumeric, underscores, and hyphens)
+        const usernameRegex = /^[a-zA-Z0-9_-]+$/;
         if (!usernameRegex.test(cleanUsername)) {
             Alert.alert(
                 'Помилка',
-                'Нікнейм може містити лише латинські літери, цифри та символ підкреслення'
+                'Нікнейм може містити лише латинські літери, цифри, дефіс та символ підкреслення'
             );
             return;
         }
