@@ -6,7 +6,6 @@ import { supabase } from '../lib/supabase';
 // Image assets
 import imgCopyIcon from "../../assets/icons/imgCopyIcon.svg";
 import imgOpenIcon from "../../assets/icons/imgOpenIcon.svg";
-import imgEditIcon from "../../assets/icons/imgEditIcon.svg";
 import imgFrame from "../../assets/icons/imgAddIcon.svg";
 import imgShareIcon from "../../assets/icons/imgShareicon.svg";
 
@@ -445,15 +444,22 @@ export const Dashboard = () => {
                                     key={profile.id}
                                     className="border-[0px_0px_1px] border-[rgba(0,0,0,0.2)] border-solid box-border content-stretch flex gap-[12px] items-center px-[12px] py-[24px] relative shrink-0 w-full"
                                 >
-                                    <div className="overflow-clip relative shrink-0 size-[24px] bg-transparent">
-                                        <img alt={profile.platform} className="block max-w-none size-full" src={profile.iconUrl} style={{ stroke: 'none' }} />
-                                    </div>
-                                    <p className="font-['Inter_Tight',sans-serif] font-normal leading-[40px] relative shrink-0 text-[24px] text-[rgba(0,0,0,0.2)] text-nowrap tracking-[-0.3008px] whitespace-pre">
-                                        /
-                                    </p>
-                                    <p className="basis-0 font-['Inter_Tight',sans-serif] font-medium grow leading-[18px] min-h-px min-w-px relative shrink-0 text-[18px] text-black tracking-[-0.3008px]">
-                                        {profile.username}
-                                    </p>
+                                    <button
+                                        onClick={() => handleEdit(profile.id)}
+                                        className="flex items-center gap-[12px] grow text-left cursor-pointer hover:opacity-80 transition-opacity bg-transparent border-none p-0 m-0"
+                                        title="Редагувати"
+                                        style={{ outline: 'none' }}
+                                    >
+                                        <div className="overflow-clip relative shrink-0 size-[24px] bg-transparent">
+                                            <img alt={profile.platform} className="block max-w-none size-full" src={profile.iconUrl} style={{ stroke: 'none' }} />
+                                        </div>
+                                        <p className="font-['Inter_Tight',sans-serif] font-normal leading-[40px] relative shrink-0 text-[24px] text-[rgba(0,0,0,0.2)] text-nowrap tracking-[-0.3008px] whitespace-pre">
+                                            /
+                                        </p>
+                                        <p className="basis-0 font-['Inter_Tight',sans-serif] font-medium grow leading-[18px] min-h-px min-w-px relative shrink-0 text-[18px] text-black tracking-[-0.3008px]">
+                                            {profile.username}
+                                        </p>
+                                    </button>
                                     <button
                                         onClick={() => handleCopy(profile.url, profile.id)}
                                         className={`relative shrink-0 size-[24px] hover:opacity-70 transition-opacity bg-transparent border-none p-0 m-0 ${copiedId === profile.id ? 'opacity-50' : ''}`}
@@ -469,14 +475,6 @@ export const Dashboard = () => {
                                         style={{ stroke: 'none', outline: 'none', padding: 0, margin: 0 }}
                                     >
                                         <img alt="Open" className="block max-w-none size-full p-0 m-0" src={imgOpenIcon} style={{ stroke: 'none', padding: 0, margin: 0 }} />
-                                    </button>
-                                    <button
-                                        onClick={() => handleEdit(profile.id)}
-                                        className="relative shrink-0 size-[24px] hover:opacity-70 transition-opacity bg-transparent border-none p-0 m-0"
-                                        title="Редагувати"
-                                        style={{ stroke: 'none', outline: 'none', padding: 0, margin: 0 }}
-                                    >
-                                        <img alt="Edit" className="block max-w-none size-full p-0 m-0" src={imgEditIcon} style={{ stroke: 'none', padding: 0, margin: 0 }} />
                                     </button>
                                 </div>
                             ))}

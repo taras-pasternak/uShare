@@ -54,9 +54,6 @@ export const ProfileCard = ({ item, onCopy, onOpen, onEditPress }: ProfileCardPr
                 <Pressable style={styles.actionIconButton} onPress={() => onOpen(item.url)}>
                     <Feather name="external-link" size={20} color="#000" />
                 </Pressable>
-                <Pressable style={styles.actionIconButton} onPress={() => onEditPress(item)}>
-                    <Feather name="edit-2" size={20} color="#000" />
-                </Pressable>
             </View>
         </View>
     );
